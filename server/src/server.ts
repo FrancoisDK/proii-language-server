@@ -21,6 +21,14 @@ import { Lexer } from './lexer';
 import { Parser } from './parser';
 import { ProgramNode } from './ast';
 import { getKeywordDoc, formatHoverDoc } from './keywordDocs';
+import {
+    getKeywordCompletions,
+    getUnitOperationSnippets,
+    getSectionCompletions,
+    getParameterCompletions,
+    getThermodynamicMethodCompletions,
+    getContextAwareCompletions
+} from './completionProvider';
 
 // Create LSP connection
 const connection = createConnection(ProposedFeatures.all);
@@ -220,12 +228,41 @@ connection.onHover((params): Hover | null => {
     };
 });
 
-// Completion provider (placeholder)
+// Completion provider
 connection.onCompletion((params) => {
-    connection.console.log(`Completion requested at ${params.position.line}:${params.position.character}`);
+    const document = documents.get(params.textDocument.uri);
+    if (!document) return [];
     
-    // TODO: Implement context-aware completion
-    return [];
+    connection.console.log(`💡 Completion requested at ${params.position.line}:${params.position.character}`);
+    
+    const text = document.getText();
+    const lines = text.split('\n');
+    const currentLine = lines[params.position.line] || '';
+    
+    // Get context-aware completions first
+    const contextItems = getContextAwareCompletions(currentLine, params.position.character);
+    if (contextItems.length > 0) {
+        connection.console.log(`💡 Returning ${contextItems.length} context-aware items`);
+        return contextItems;
+    }
+    
+    // Otherwise return all available completions
+    const allItems = [
+        ...getSectionCompletions(),
+        ...getUnitOperationSnippets(),
+        ...getKeywordCompletions(),
+        ...getParameterCompletions(),
+        ...getThermodynamicMethodCompletions()
+    ];
+    
+    connection.console.log(`💡 Returning ${allItems.length} completion items`);
+    return allItems;
+});
+
+// Completion resolve (provide additional details)
+connection.onCompletionResolve((item) => {
+    // Item already has all details, just return it
+    return item;
 });
 
 // Stub handlers to prevent "Unhandled method" errors
