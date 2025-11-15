@@ -1,0 +1,41 @@
+{
+  "name": "proii-language-server",
+  "displayName": "PRO/II Language Server",
+  "description": "Language Server Protocol implementation for PRO/II process simulation files with intelligent features",
+  "version": "2.0.0-alpha.1",
+  "publisher": "francois-de-klerk",
+  "author": "Francois de Klerk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FrancoisDK/proii-language-server.git"
+  },
+  "engines": {
+    "vscode": "^1.105.0",
+    "node": ">=18.0.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Formatters"
+  ],
+  "keywords": [
+    "proii",
+    "pro/ii",
+    "chemical engineering",
+    "process simulation",
+    "lsp",
+    "language-server"
+  ],
+  "scripts": {
+    "compile": "cd client && npm run compile && cd ../server && npm run compile",
+    "watch": "echo 'Use npm run watch in client/ or server/ directories'",
+    "test": "cd server && npm test",
+    "clean": "rimraf client/out server/out shared/out"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "typescript": "^5.3.0",
+    "rimraf": "^5.0.5"
+  }
+}
