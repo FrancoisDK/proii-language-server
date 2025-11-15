@@ -228,6 +228,17 @@ connection.onCompletion((params) => {
     return [];
 });
 
+// Stub handlers to prevent "Unhandled method" errors
+connection.onCodeAction(() => {
+    // Return empty array instead of throwing error
+    return [];
+});
+
+connection.onDocumentSymbol(() => {
+    // Return empty array instead of throwing error
+    return [];
+});
+
 // Make the document manager listen on the connection
 documents.listen(connection);
 
