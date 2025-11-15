@@ -20,6 +20,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Lexer } from './lexer';
 import { Parser } from './parser';
 import { ProgramNode } from './ast';
+import { getKeywordDoc, formatHoverDoc } from './keywordDocs';
 
 // Create LSP connection
 const connection = createConnection(ProposedFeatures.all);
@@ -167,21 +168,56 @@ connection.onHover((params): Hover | null => {
     let end = char;
     while (start > 0 && /[A-Za-z0-9_-]/.test(currentLine[start - 1])) start--;
     while (end < currentLine.length && /[A-Za-z0-9_-]/.test(currentLine[end])) end++;
-    const word = currentLine.substring(start, end).toUpperCase();
+    const word = currentLine.substring(start, end);
+    
+    if (!word) return null;
     
     connection.console.log(`🔍 Hover on word: "${word}" at line ${line}`);
     
-    // Provide basic hover info
-    if (word) {
+    // Check if it's a multi-word keyword (e.g., "COMPONENT DATA")
+    let keyword = word.toUpperCase();
+    let keywordDoc = getKeywordDoc(keyword);
+    
+    // Try to match multi-word keywords
+    if (!keywordDoc) {
+        const restOfLine = currentLine.substring(start).toUpperCase();
+        
+        // Check for common multi-word patterns
+        const multiWordPatterns = [
+            'COMPONENT DATA',
+            'STREAM DATA',
+            'THERMODYNAMIC DATA',
+            'UNIT OPERATIONS',
+            'PROP DATA',
+            'COMP DATA'
+        ];
+        
+        for (const pattern of multiWordPatterns) {
+            if (restOfLine.startsWith(pattern)) {
+                keyword = pattern;
+                keywordDoc = getKeywordDoc(pattern);
+                if (keywordDoc) break;
+            }
+        }
+    }
+    
+    // If we found documentation, return formatted hover
+    if (keywordDoc) {
         return {
             contents: {
                 kind: 'markdown',
-                value: `**${word}**\n\n🚧 PRO/II LSP v2.0 Alpha - Hover provider under development`
+                value: formatHoverDoc(keywordDoc)
             }
         };
     }
     
-    return null;
+    // Fallback: show the word without documentation
+    return {
+        contents: {
+            kind: 'markdown',
+            value: `**${word}**\n\n*No documentation available*`
+        }
+    };
 });
 
 // Completion provider (placeholder)
