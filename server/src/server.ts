@@ -44,19 +44,13 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
                 resolveProvider: true,
                 triggerCharacters: ['=', ',', ' ']
             },
-            definitionProvider: true,
-            referencesProvider: true,
-            documentSymbolProvider: true,
-            workspaceSymbolProvider: true,
-            codeActionProvider: true,
-            renameProvider: {
-                prepareProvider: true
-            },
-            documentFormattingProvider: true,
-            diagnosticProvider: {
-                interFileDependencies: false,
-                workspaceDiagnostics: false
-            }
+            definitionProvider: false,
+            referencesProvider: false,
+            documentSymbolProvider: false,
+            workspaceSymbolProvider: false,
+            codeActionProvider: false,
+            renameProvider: false,
+            documentFormattingProvider: false
         }
     };
 });

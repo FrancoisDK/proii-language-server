@@ -36,8 +36,15 @@
       {
         "id": "proii",
         "aliases": ["PRO/II", "proii"],
-        "extensions": [".proii", ".prz"],
+        "extensions": [".inp", ".out", ".sdf", ".p2i"],
         "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "proii",
+        "scopeName": "source.proii",
+        "path": "./syntaxes/proii.tmLanguage.json"
       }
     ]
   },

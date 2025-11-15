@@ -9,10 +9,11 @@
                 "--extensionDevelopmentPath=${workspaceFolder}"
             ],
             "outFiles": [
-                "${workspaceFolder}/client/out/**/*.js",
-                "${workspaceFolder}/server/out/**/*.js"
+                "${workspaceFolder}/client/out/**/*.js"
             ],
-            "preLaunchTask": "${defaultBuildTask}"
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
         },
         {
             "name": "Attach to Server",

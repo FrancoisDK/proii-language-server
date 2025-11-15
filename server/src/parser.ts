@@ -29,11 +29,25 @@ export class Parser {
 
         // Skip initial comments and newlines
         this.skipWhitespaceAndComments();
+        console.log(`Parser: Starting main loop, position=${this.position}, tokens=${this.tokens.length}`);
 
+        let loopGuard = 0;
+        const maxIterations = 50; // Very low to catch issues fast
+        
         while (!this.isAtEnd()) {
+            if (++loopGuard > maxIterations) {
+                const token = this.current();
+                throw new Error(`Parser infinite loop detected at position ${this.position}/${this.tokens.length}, token: ${token.type} "${token.value}" on line ${token.line}`);
+            }
+            
+            if (loopGuard % 10 === 0) {
+                console.log(`Parser: iteration ${loopGuard}, position=${this.position}`);
+            }
+            
             const section = this.parseSection();
             if (section) {
                 sections.push(section);
+                console.log(`Parser: Added section ${section.sectionType}`);
             }
             this.skipWhitespaceAndComments();
         }
@@ -63,9 +77,15 @@ export class Parser {
 
             // Parse component statements until next section
             while (!this.isAtEnd() && !this.isNextSection()) {
+                const beforePos = this.position;
                 const stmt = this.parseComponentStatement();
                 if (stmt) statements.push(stmt);
                 this.skipWhitespaceAndComments();
+                
+                // Safety: prevent infinite loop
+                if (this.position === beforePos && !this.isAtEnd()) {
+                    this.advanceLine();
+                }
             }
         } else if (this.check(TokenType.STREAM) && this.checkNext(TokenType.DATA)) {
             sectionType = 'STREAM_DATA';
@@ -74,9 +94,15 @@ export class Parser {
             this.consumeNewlines();
 
             while (!this.isAtEnd() && !this.isNextSection()) {
+                const beforePos = this.position;
                 const stmt = this.parseStreamStatement();
                 if (stmt) statements.push(stmt);
                 this.skipWhitespaceAndComments();
+                
+                // Safety: prevent infinite loop
+                if (this.position === beforePos && !this.isAtEnd()) {
+                    this.advanceLine();
+                }
             }
         } else if (this.check(TokenType.THERMODYNAMIC) && this.checkNext(TokenType.DATA)) {
             sectionType = 'THERMODYNAMIC_DATA';
@@ -85,9 +111,15 @@ export class Parser {
             this.consumeNewlines();
 
             while (!this.isAtEnd() && !this.isNextSection()) {
+                const beforePos = this.position;
                 const stmt = this.parseThermodynamicStatement();
                 if (stmt) statements.push(stmt);
                 this.skipWhitespaceAndComments();
+                
+                // Safety: prevent infinite loop
+                if (this.position === beforePos && !this.isAtEnd()) {
+                    this.advanceLine();
+                }
             }
         } else if (this.check(TokenType.UNIT_OPERATIONS)) {
             sectionType = 'UNIT_OPERATIONS';
@@ -95,9 +127,15 @@ export class Parser {
             this.consumeNewlines();
 
             while (!this.isAtEnd() && !this.isNextSection()) {
+                const beforePos = this.position;
                 const stmt = this.parseUnitOperation();
                 if (stmt) statements.push(stmt);
                 this.skipWhitespaceAndComments();
+                
+                // Safety: if position didn't advance, force advance to prevent infinite loop
+                if (this.position === beforePos && !this.isAtEnd()) {
+                    this.advanceLine();
+                }
             }
         } else if (this.check(TokenType.PRINT)) {
             sectionType = 'PRINT';
@@ -139,7 +177,15 @@ export class Parser {
         const productStreams: StreamReferenceNode[] = [];
 
         // Parse rest of line and continuations
+        let unitLoopGuard = 0;
         while (!this.isAtEnd() && !this.check(TokenType.NEWLINE)) {
+            if (++unitLoopGuard > 1000) {
+                const token = this.current();
+                throw new Error(`Infinite loop in parseUnitOperation at position ${this.position}, token: ${token.type} "${token.value}"`);
+            }
+            
+            const beforePos = this.position;
+            
             // Handle continuation
             if (this.check(TokenType.CONTINUATION)) {
                 this.advance();
@@ -176,6 +222,11 @@ export class Parser {
 
             // Skip comma
             this.consume(TokenType.COMMA);
+            
+            // Safety: if position didn't advance, force skip to prevent infinite loop
+            if (this.position === beforePos && !this.isAtEnd() && !this.check(TokenType.NEWLINE)) {
+                this.advance(); // Force advance
+            }
         }
 
         this.consumeNewlines();

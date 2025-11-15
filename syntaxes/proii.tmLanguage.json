@@ -1,0 +1,93 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "PRO/II",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#sections"
+    },
+    {
+      "include": "#units"
+    },
+    {
+      "include": "#parameters"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.dollar.proii",
+          "match": "^\\$.*$"
+        },
+        {
+          "name": "comment.line.percent.proii",
+          "match": "^%.*$"
+        }
+      ]
+    },
+    "sections": {
+      "patterns": [
+        {
+          "name": "keyword.control.section.proii",
+          "match": "\\b(COMPONENT DATA|STREAM DATA|THERMODYNAMIC DATA|UNIT OPERATIONS|PRINT)\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.other.proii",
+          "match": "\\b(LIBID|NAME|BANK|PROP|COMP|DATA|METHOD|SET|INPUT|RESULT|ALL|STREAM|UID|FEED|PROD|PRODUCT|TEMP|PRES|RATE|VAPOR|LIQUID)\\b"
+        }
+      ]
+    },
+    "units": {
+      "patterns": [
+        {
+          "name": "entity.name.function.unit.proii",
+          "match": "\\b(FLASH|COLUMN|HCURVE|HX|COMPRESSOR|PUMP|MIXER|SPLITTER|VALVE|REACTOR|CALCULATOR|STCALC)\\b"
+        }
+      ]
+    },
+    "parameters": {
+      "patterns": [
+        {
+          "name": "variable.parameter.proii",
+          "match": "\\b([A-Z][A-Z0-9]*)\\s*="
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.proii",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.proii",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.proii",
+          "match": "\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.proii"
+}
