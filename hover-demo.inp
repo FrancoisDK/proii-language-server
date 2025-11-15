@@ -1,0 +1,133 @@
+! PRO/II Hover Documentation Demo
+! Hover over any keyword to see rich documentation
+! ================================================
+
+! Try hovering over these section headers:
+COMPONENT DATA
+    LIBID 1, PROPANE / 2, N-BUTANE / 3, N-PENTANE / 62, WATER
+
+STREAM DATA
+    PROP DATA, STREAM=FEED1, TEMP=100, PRES=150, RATE=1000
+    COMP DATA, STREAM=FEED1, RATE(M)=250, 300, 350, 100
+
+THERMODYNAMIC DATA
+    ! Hover over these thermodynamic methods:
+    METHOD SYSTEM=SRK, SET=SRK01
+
+UNIT OPERATIONS
+    ! Hover over unit operation types:
+    FLASH UID=F-101, NAME="Demo Flash Drum"
+        FEED=FEED1
+        PROD=V=VAPOR, L=LIQUID
+        TEMP=120, PRES=50
+    
+    ! Try hovering over different unit ops:
+    COLUMN UID=C-101, NAME="Distillation Column"
+        NSTAGE=20
+        FEED=10/FEED1
+        PROD=D=DISTILLATE, B=BOTTOMS
+        REFLUX=2.5
+    
+    HX UID=E-101, NAME="Feed Heater"
+        FEED=COLD-IN, HOT-IN
+        PROD=COLD-OUT, HOT-OUT
+        DUTY=1.5E6
+    
+    COMPRESSOR UID=K-101
+        FEED=VAPOR
+        PROD=COMPRESSED
+        PRES=250
+        EFF=0.75
+    
+    PUMP UID=P-101
+        FEED=LIQUID
+        PROD=PUMPED
+        PRES=200
+        EFF=0.70
+    
+    MIXER UID=M-101
+        FEED=STREAM1, STREAM2, STREAM3
+        PROD=MIXED
+    
+    SPLITTER UID=S-101
+        FEED=MIXED
+        PROD=SPLIT1, SPLIT2
+        FRAC=0.6, 0.4
+    
+    VALVE UID=V-101
+        FEED=HIGH-PRESSURE
+        PROD=LOW-PRESSURE
+        PRES=25
+    
+    REACTOR UID=R-101
+        TYPE=CONVERSION
+        FEED=REACTANTS
+        PROD=PRODUCTS
+        TEMP=350, PRES=100
+
+PRINT
+    INPUT
+    RESULT STREAM=ALL
+
+! ====================================================
+! HOVER TESTING CHECKLIST:
+! ====================================================
+! 
+! Unit Operations (hover to see detailed docs):
+!   [ ] FLASH    - Vapor-liquid separator
+!   [ ] COLUMN   - Distillation column
+!   [ ] HX       - Heat exchanger
+!   [ ] HCURVE   - Heating/cooling curve
+!   [ ] COMPRESSOR - Gas compressor
+!   [ ] PUMP     - Liquid pump
+!   [ ] MIXER    - Stream combiner
+!   [ ] SPLITTER - Stream divider
+!   [ ] VALVE    - Pressure reduction
+!   [ ] REACTOR  - Chemical reactor
+!
+! Parameters (hover for descriptions):
+!   [ ] UID      - Unit identifier
+!   [ ] NAME     - Descriptive name
+!   [ ] FEED     - Inlet streams
+!   [ ] PROD     - Outlet streams
+!   [ ] TEMP     - Temperature specification
+!   [ ] PRES     - Pressure specification
+!   [ ] RATE     - Flow rate
+!   [ ] DUTY     - Heat duty
+!   [ ] EFF      - Efficiency
+!   [ ] FRAC     - Split fraction
+!   [ ] NSTAGE   - Number of stages
+!   [ ] REFLUX   - Reflux ratio
+!   [ ] VFRAC    - Vapor fraction
+!
+! Sections (hover for section info):
+!   [ ] COMPONENT DATA
+!   [ ] STREAM DATA
+!   [ ] THERMODYNAMIC DATA
+!   [ ] UNIT OPERATIONS
+!   [ ] PRINT
+!
+! Methods (hover for thermo method details):
+!   [ ] SRK      - Soave-Redlich-Kwong
+!   [ ] PR       - Peng-Robinson
+!   [ ] IDEAL    - Ideal gas
+!   [ ] NRTL     - Activity coefficient
+!   [ ] UNIQUAC  - Activity coefficient
+!
+! Properties:
+!   [ ] PROP     - Property data
+!   [ ] STREAM   - Stream identifier
+!   [ ] COMP     - Component data
+!   [ ] LIBID    - Library ID
+!   [ ] METHOD   - Calculation method
+!   [ ] SYSTEM   - System specification
+!   [ ] SET      - Method set
+!
+! ====================================================
+! Each hover should show:
+! - Category badge (⚙️ 🔧 📋 🧪 📊)
+! - Description
+! - Syntax with code highlighting
+! - Common parameters (if applicable)
+! - Example code
+! ====================================================
