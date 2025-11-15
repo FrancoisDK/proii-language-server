@@ -29,6 +29,8 @@ import {
     getThermodynamicMethodCompletions,
     getContextAwareCompletions
 } from './completionProvider';
+import { SymbolTable } from './symbolTable';
+import { provideHover as provideSymbolHover } from './symbolHoverProvider';
 
 // Create LSP connection
 const connection = createConnection(ProposedFeatures.all);
@@ -38,6 +40,9 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 // Store parsed ASTs for each document
 const documentASTs: Map<string, ProgramNode> = new Map();
+
+// Store symbol tables for each document
+const documentSymbolTables: Map<string, SymbolTable> = new Map();
 
 // Initialize server
 connection.onInitialize((params: InitializeParams): InitializeResult => {
@@ -80,7 +85,14 @@ function parseDocument(document: TextDocument): ProgramNode | null {
         const ast = parser.parse();
         
         documentASTs.set(document.uri, ast);
-        connection.console.log(`✅ Parsed ${document.uri}: ${ast.sections.length} sections`);
+        
+        // Build symbol table from AST
+        const symbolTable = new SymbolTable();
+        symbolTable.build(ast, text);
+        documentSymbolTables.set(document.uri, symbolTable);
+        
+        const stats = symbolTable.getStats();
+        connection.console.log(`✅ Parsed ${document.uri}: ${ast.sections.length} sections, ${stats.streams} streams, ${stats.components} components, ${stats.units} units`);
         
         return ast;
     } catch (error) {
@@ -152,6 +164,7 @@ documents.onDidChangeContent((change) => {
 documents.onDidClose((event) => {
     connection.console.log(`📪 Document closed: ${event.document.uri}`);
     documentASTs.delete(event.document.uri);
+    documentSymbolTables.delete(event.document.uri);
     connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
 });
 
@@ -162,6 +175,8 @@ connection.onHover((params): Hover | null => {
     
     const ast = documentASTs.get(params.textDocument.uri);
     if (!ast) return null;
+    
+    const symbolTable = documentSymbolTables.get(params.textDocument.uri);
     
     const line = params.position.line + 1; // AST uses 1-based lines
     
@@ -181,6 +196,15 @@ connection.onHover((params): Hover | null => {
     if (!word) return null;
     
     connection.console.log(`🔍 Hover on word: "${word}" at line ${line}`);
+    
+    // Try symbol hover first (streams, components, units)
+    if (symbolTable) {
+        const symbolHover = provideSymbolHover(symbolTable, word);
+        if (symbolHover) {
+            connection.console.log(`✅ Found symbol hover for: ${word}`);
+            return symbolHover;
+        }
+    }
     
     // Check if it's a multi-word keyword (e.g., "COMPONENT DATA")
     let keyword = word.toUpperCase();
@@ -211,6 +235,7 @@ connection.onHover((params): Hover | null => {
     
     // If we found documentation, return formatted hover
     if (keywordDoc) {
+        connection.console.log(`✅ Found keyword hover for: ${keyword}`);
         return {
             contents: {
                 kind: 'markdown',
@@ -220,6 +245,7 @@ connection.onHover((params): Hover | null => {
     }
     
     // Fallback: show the word without documentation
+    connection.console.log(`ℹ️ No hover information for: ${word}`);
     return {
         contents: {
             kind: 'markdown',

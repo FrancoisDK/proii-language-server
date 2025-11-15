@@ -39,6 +39,17 @@ export interface Symbol {
         libid?: number; // For components: library ID
         componentName?: string; // For components: full name
         value?: string; // For parameters
+        // Stream properties
+        temp?: number;
+        pres?: number;
+        rate?: number;
+        rateUnit?: string;
+        phase?: string; // 'vapor', 'liquid', 'mixed'
+        description?: string; // From NAME statements
+        // Component properties
+        formula?: string;
+        type?: string; // 'Hydrocarbon', 'Inorganic Gas', etc.
+        molecularWeight?: string;
     };
 }
 
@@ -51,13 +62,16 @@ export class SymbolTable {
     /**
      * Build symbol table from AST
      */
-    public build(ast: ProgramNode): void {
+    public build(ast: ProgramNode, documentText?: string): void {
         this.symbols.clear();
+        this.documentText = documentText || '';
 
         for (const section of ast.sections) {
             this.processSection(section);
         }
     }
+
+    private documentText: string = '';
 
     /**
      * Process a section node
@@ -102,14 +116,27 @@ export class SymbolTable {
                 
                 // Extract stream name from PROP DATA or COMP DATA
                 if (streamStmt.streamName) {
+                    // Get the line text if available
+                    const lineText = this.getLineText(streamStmt.startLine);
+                    
                     this.addStream(
                         streamStmt.streamName.name,
                         streamStmt.startLine,
-                        'definition'
+                        'definition',
+                        lineText
                     );
                 }
             }
         }
+    }
+
+    /**
+     * Get line text by line number (1-based)
+     */
+    private getLineText(lineNumber: number): string {
+        if (!this.documentText) return '';
+        const lines = this.documentText.split(/\r?\n/);
+        return lines[lineNumber - 1] || '';
     }
 
     /**
@@ -157,6 +184,7 @@ export class SymbolTable {
         const name = comp.identifier.toUpperCase();
         
         if (!this.symbols.has(name)) {
+            const details = this.getComponentDetails(name);
             this.symbols.set(name, {
                 name,
                 kind: SymbolKind.COMPONENT,
@@ -164,16 +192,63 @@ export class SymbolTable {
                 references: [],
                 metadata: {
                     libid: comp.libid?.value,
-                    componentName: comp.identifier
+                    componentName: comp.identifier,
+                    ...details
                 }
             });
         }
     }
 
     /**
+     * Get detailed information about common components
+     */
+    private getComponentDetails(name: string): Record<string, any> {
+        const components: { [key: string]: { type: string; formula: string; molecularWeight?: string } } = {
+            'H2O': { type: 'Inorganic', formula: 'H₂O', molecularWeight: '18.02' },
+            'H2': { type: 'Inorganic Gas', formula: 'H₂', molecularWeight: '2.02' },
+            'N2': { type: 'Inorganic Gas', formula: 'N₂', molecularWeight: '28.01' },
+            'O2': { type: 'Inorganic Gas', formula: 'O₂', molecularWeight: '32.00' },
+            'CO2': { type: 'Inorganic Gas', formula: 'CO₂', molecularWeight: '44.01' },
+            'CO': { type: 'Inorganic Gas', formula: 'CO', molecularWeight: '28.01' },
+            'H2S': { type: 'Inorganic Gas', formula: 'H₂S', molecularWeight: '34.08' },
+            'NH3': { type: 'Inorganic Gas', formula: 'NH₃', molecularWeight: '17.03' },
+            'C1': { type: 'Hydrocarbon', formula: 'CH₄ (Methane)', molecularWeight: '16.04' },
+            'CH4': { type: 'Hydrocarbon', formula: 'CH₄ (Methane)', molecularWeight: '16.04' },
+            'C2': { type: 'Hydrocarbon', formula: 'C₂H₆ (Ethane)', molecularWeight: '30.07' },
+            'C2H6': { type: 'Hydrocarbon', formula: 'C₂H₆ (Ethane)', molecularWeight: '30.07' },
+            'ETHANE': { type: 'Hydrocarbon', formula: 'C₂H₆ (Ethane)', molecularWeight: '30.07' },
+            'C3': { type: 'Hydrocarbon', formula: 'C₃H₈ (Propane)', molecularWeight: '44.10' },
+            'C3H8': { type: 'Hydrocarbon', formula: 'C₃H₈ (Propane)', molecularWeight: '44.10' },
+            'PROPANE': { type: 'Hydrocarbon', formula: 'C₃H₈ (Propane)', molecularWeight: '44.10' },
+            'IC4': { type: 'Hydrocarbon', formula: 'C₄H₁₀ (i-Butane)', molecularWeight: '58.12' },
+            'ISOBUTANE': { type: 'Hydrocarbon', formula: 'C₄H₁₀ (i-Butane)', molecularWeight: '58.12' },
+            'NC4': { type: 'Hydrocarbon', formula: 'C₄H₁₀ (n-Butane)', molecularWeight: '58.12' },
+            'N-BUTANE': { type: 'Hydrocarbon', formula: 'C₄H₁₀ (n-Butane)', molecularWeight: '58.12' },
+            'IC5': { type: 'Hydrocarbon', formula: 'C₅H₁₂ (i-Pentane)', molecularWeight: '72.15' },
+            'NC5': { type: 'Hydrocarbon', formula: 'C₅H₁₂ (n-Pentane)', molecularWeight: '72.15' },
+            'NC6': { type: 'Hydrocarbon', formula: 'C₆H₁₄ (n-Hexane)', molecularWeight: '86.18' },
+            'NC7': { type: 'Hydrocarbon', formula: 'C₇H₁₆ (n-Heptane)', molecularWeight: '100.20' },
+            'NC8': { type: 'Hydrocarbon', formula: 'C₈H₁₈ (n-Octane)', molecularWeight: '114.23' },
+            'NC9': { type: 'Hydrocarbon', formula: 'C₉H₂₀ (n-Nonane)', molecularWeight: '128.26' },
+            'NC10': { type: 'Hydrocarbon', formula: 'C₁₀H₂₂ (n-Decane)', molecularWeight: '142.28' },
+            'NC12': { type: 'Hydrocarbon', formula: 'C₁₂H₂₆ (n-Dodecane)', molecularWeight: '170.34' },
+            'NC13': { type: 'Hydrocarbon', formula: 'C₁₃H₂₈ (n-Tridecane)', molecularWeight: '184.36' },
+            'NC14': { type: 'Hydrocarbon', formula: 'C₁₄H₃₀ (n-Tetradecane)', molecularWeight: '198.39' },
+            'NC15': { type: 'Hydrocarbon', formula: 'C₁₅H₃₂ (n-Pentadecane)', molecularWeight: '212.41' },
+            'NC16': { type: 'Hydrocarbon', formula: 'C₁₆H₃₄ (n-Hexadecane)', molecularWeight: '226.44' },
+            'BENZENE': { type: 'Aromatic', formula: 'C₆H₆', molecularWeight: '78.11' },
+            'TOLUENE': { type: 'Aromatic', formula: 'C₇H₈', molecularWeight: '92.14' },
+            'ETHYLBENZENE': { type: 'Aromatic', formula: 'C₈H₁₀', molecularWeight: '106.17' },
+            'XYLENE': { type: 'Aromatic', formula: 'C₈H₁₀', molecularWeight: '106.17' },
+        };
+
+        return components[name] || {};
+    }
+
+    /**
      * Add a stream to the symbol table
      */
-    private addStream(name: string, line: number, context: string): void {
+    private addStream(name: string, line: number, context: string, lineText?: string): void {
         const upperName = name.toUpperCase();
         
         if (!this.symbols.has(upperName)) {
@@ -181,14 +256,50 @@ export class SymbolTable {
                 name: upperName,
                 kind: SymbolKind.STREAM,
                 definedAt: { line },
-                references: [{ line, context }]
+                references: [{ line, context }],
+                metadata: this.extractStreamProperties(lineText || '')
             });
         } else {
             const symbol = this.symbols.get(upperName)!;
             if (symbol.kind === SymbolKind.STREAM) {
                 symbol.references.push({ line, context });
+                // Merge properties if this is a definition
+                if (context === 'definition' && lineText) {
+                    const props = this.extractStreamProperties(lineText);
+                    symbol.metadata = { ...symbol.metadata, ...props };
+                }
             }
         }
+    }
+
+    /**
+     * Extract stream properties from PROP statement
+     */
+    private extractStreamProperties(lineText: string): Record<string, any> {
+        const props: Record<string, any> = {};
+
+        // Extract TEMP=
+        const tempMatch = lineText.match(/TEMP\s*=\s*([\d.]+)/i);
+        if (tempMatch) {
+            props.temp = parseFloat(tempMatch[1]);
+        }
+
+        // Extract PRES=
+        const presMatch = lineText.match(/PRES(?:SURE)?\s*(?:\([^)]+\))?\s*=\s*([\d.]+)/i);
+        if (presMatch) {
+            props.pres = parseFloat(presMatch[1]);
+        }
+
+        // Extract RATE=
+        const rateMatch = lineText.match(/RATE\s*(?:\(([^)]+)\))?\s*=\s*([\d.]+)/i);
+        if (rateMatch) {
+            props.rate = parseFloat(rateMatch[2]);
+            if (rateMatch[1]) {
+                props.rateUnit = rateMatch[1];
+            }
+        }
+
+        return props;
     }
 
     /**
