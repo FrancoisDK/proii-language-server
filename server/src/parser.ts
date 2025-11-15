@@ -32,16 +32,14 @@ export class Parser {
         console.log(`Parser: Starting main loop, position=${this.position}, tokens=${this.tokens.length}`);
 
         let loopGuard = 0;
-        const maxIterations = 50; // Very low to catch issues fast
+        const maxIterations = this.tokens.length * 2; // Allow 2 iterations per token
         
         while (!this.isAtEnd()) {
+            const beforePos = this.position;
+            
             if (++loopGuard > maxIterations) {
                 const token = this.current();
                 throw new Error(`Parser infinite loop detected at position ${this.position}/${this.tokens.length}, token: ${token.type} "${token.value}" on line ${token.line}`);
-            }
-            
-            if (loopGuard % 10 === 0) {
-                console.log(`Parser: iteration ${loopGuard}, position=${this.position}`);
             }
             
             const section = this.parseSection();
@@ -50,6 +48,13 @@ export class Parser {
                 console.log(`Parser: Added section ${section.sectionType}`);
             }
             this.skipWhitespaceAndComments();
+            
+            // Safety: if position didn't advance, force skip to prevent infinite loop
+            if (this.position === beforePos && !this.isAtEnd()) {
+                console.log(`Parser: Stuck at position ${this.position}, forcing advance`);
+                this.advance();
+                this.skipWhitespaceAndComments();
+            }
         }
 
         return {
@@ -707,7 +712,12 @@ export class Parser {
     }
 
     private advanceLine(): void {
+        let safety = 0;
         while (!this.isAtEnd() && !this.check(TokenType.NEWLINE)) {
+            if (++safety > 1000) {
+                console.log(`advanceLine: Safety limit hit, forcing to end of line`);
+                break;
+            }
             this.advance();
         }
         this.consumeNewlines();
