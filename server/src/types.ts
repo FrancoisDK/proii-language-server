@@ -10,10 +10,17 @@ export enum TokenType {
     STRING = 'STRING',                    // "quoted string"
     
     // Keywords - Section Headers
+    COMPONENT = 'COMPONENT',
+    DATA = 'DATA',
+    STREAM = 'STREAM',
+    THERMODYNAMIC = 'THERMODYNAMIC',
     COMPONENT_DATA = 'COMPONENT_DATA',
     STREAM_DATA = 'STREAM_DATA',
     THERMODYNAMIC_DATA = 'THERMODYNAMIC_DATA',
     UNIT_OPERATIONS = 'UNIT_OPERATIONS',
+    PRINT = 'PRINT',
+    INPUT = 'INPUT',
+    RESULT = 'RESULT',
     
     // Keywords - Unit Operations
     FLASH = 'FLASH',
@@ -48,6 +55,10 @@ export enum TokenType {
     SPEC = 'SPEC',
     VARY = 'VARY',
     DEFINE = 'DEFINE',
+    PROP = 'PROP',
+    NSTAGE = 'NSTAGE',
+    COND = 'COND',
+    TYPE = 'TYPE',
     
     // Keywords - Thermodynamic Methods
     SRK = 'SRK',
@@ -91,10 +102,14 @@ export interface Token {
  */
 export const KEYWORDS: Map<string, TokenType> = new Map([
     // Section headers
-    ['COMPONENT', TokenType.COMPONENT_DATA],
-    ['STREAM', TokenType.STREAM_DATA],
-    ['THERMODYNAMIC', TokenType.THERMODYNAMIC_DATA],
+    ['COMPONENT', TokenType.COMPONENT],
+    ['DATA', TokenType.DATA],
+    ['STREAM', TokenType.STREAM],
+    ['THERMODYNAMIC', TokenType.THERMODYNAMIC],
     ['UNIT', TokenType.UNIT_OPERATIONS],
+    ['PRINT', TokenType.PRINT],
+    ['INPUT', TokenType.INPUT],
+    ['RESULT', TokenType.RESULT],
     
     // Unit operations
     ['FLASH', TokenType.FLASH],
@@ -127,6 +142,10 @@ export const KEYWORDS: Map<string, TokenType> = new Map([
     ['METHOD', TokenType.METHOD],
     ['SET', TokenType.SET],
     ['SPEC', TokenType.SPEC],
+    ['PROP', TokenType.PROP],
+    ['NSTAGE', TokenType.NSTAGE],
+    ['COND', TokenType.COND],
+    ['TYPE', TokenType.TYPE],
     ['VARY', TokenType.VARY],
     ['DEFINE', TokenType.DEFINE],
     
