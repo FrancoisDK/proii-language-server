@@ -9,16 +9,26 @@ import {
     ProposedFeatures,
     InitializeParams,
     TextDocumentSyncKind,
-    InitializeResult
+    InitializeResult,
+    Diagnostic,
+    DiagnosticSeverity,
+    Hover,
+    MarkupContent
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Lexer } from './lexer';
+import { Parser } from './parser';
+import { ProgramNode } from './ast';
 
 // Create LSP connection
 const connection = createConnection(ProposedFeatures.all);
 
 // Document manager
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+
+// Store parsed ASTs for each document
+const documentASTs: Map<string, ProgramNode> = new Map();
 
 // Initialize server
 connection.onInitialize((params: InitializeParams): InitializeResult => {
@@ -55,33 +65,129 @@ connection.onInitialized(() => {
     connection.console.log('✅ PRO/II Language Server initialized!');
 });
 
+/**
+ * Parse a document and store the AST
+ */
+function parseDocument(document: TextDocument): ProgramNode | null {
+    try {
+        const text = document.getText();
+        const lexer = new Lexer(text);
+        const tokens = lexer.tokenize();
+        const parser = new Parser(tokens);
+        const ast = parser.parse();
+        
+        documentASTs.set(document.uri, ast);
+        connection.console.log(`✅ Parsed ${document.uri}: ${ast.sections.length} sections`);
+        
+        return ast;
+    } catch (error) {
+        connection.console.error(`❌ Parse error in ${document.uri}: ${error}`);
+        return null;
+    }
+}
+
+/**
+ * Validate document and send diagnostics
+ */
+function validateDocument(document: TextDocument): void {
+    const diagnostics: Diagnostic[] = [];
+    
+    try {
+        const text = document.getText();
+        const lexer = new Lexer(text);
+        const tokens = lexer.tokenize();
+        
+        // Check for unknown tokens
+        tokens.forEach(token => {
+            if (token.type === 'UNKNOWN') {
+                diagnostics.push({
+                    severity: DiagnosticSeverity.Warning,
+                    range: {
+                        start: { line: token.line - 1, character: token.column - 1 },
+                        end: { line: token.line - 1, character: token.column + token.length - 1 }
+                    },
+                    message: `Unknown token: ${token.value}`,
+                    source: 'proii-lsp'
+                });
+            }
+        });
+        
+        // Try parsing
+        const parser = new Parser(tokens);
+        const ast = parser.parse();
+        documentASTs.set(document.uri, ast);
+        
+    } catch (error) {
+        // Add parse error diagnostic
+        diagnostics.push({
+            severity: DiagnosticSeverity.Error,
+            range: {
+                start: { line: 0, character: 0 },
+                end: { line: 0, character: 10 }
+            },
+            message: `Parse error: ${error}`,
+            source: 'proii-lsp'
+        });
+    }
+    
+    connection.sendDiagnostics({ uri: document.uri, diagnostics });
+}
+
 // Document events
 documents.onDidOpen((event) => {
-    connection.console.log(`Document opened: ${event.document.uri}`);
-    // TODO: Parse document and build symbol table
+    connection.console.log(`📄 Document opened: ${event.document.uri}`);
+    parseDocument(event.document);
+    validateDocument(event.document);
 });
 
 documents.onDidChangeContent((change) => {
-    connection.console.log(`Document changed: ${change.document.uri}`);
-    // TODO: Incremental parsing and validation
+    connection.console.log(`✏️ Document changed: ${change.document.uri}`);
+    parseDocument(change.document);
+    validateDocument(change.document);
 });
 
 documents.onDidClose((event) => {
-    connection.console.log(`Document closed: ${event.document.uri}`);
-    // TODO: Clean up document data
+    connection.console.log(`📪 Document closed: ${event.document.uri}`);
+    documentASTs.delete(event.document.uri);
+    connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
 });
 
-// Hover provider (placeholder)
-connection.onHover((params) => {
-    connection.console.log(`Hover requested at ${params.position.line}:${params.position.character}`);
+// Hover provider
+connection.onHover((params): Hover | null => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) return null;
     
-    // TODO: Implement hover logic
-    return {
-        contents: {
-            kind: 'markdown',
-            value: '🚧 **PRO/II LSP v2.0 Alpha**\n\nHover provider under development...'
-        }
-    };
+    const ast = documentASTs.get(params.textDocument.uri);
+    if (!ast) return null;
+    
+    const line = params.position.line + 1; // AST uses 1-based lines
+    
+    // Find what's at the cursor position
+    const text = document.getText();
+    const lines = text.split('\n');
+    const currentLine = lines[params.position.line];
+    const char = params.position.character;
+    
+    // Get word at position
+    let start = char;
+    let end = char;
+    while (start > 0 && /[A-Za-z0-9_-]/.test(currentLine[start - 1])) start--;
+    while (end < currentLine.length && /[A-Za-z0-9_-]/.test(currentLine[end])) end++;
+    const word = currentLine.substring(start, end).toUpperCase();
+    
+    connection.console.log(`🔍 Hover on word: "${word}" at line ${line}`);
+    
+    // Provide basic hover info
+    if (word) {
+        return {
+            contents: {
+                kind: 'markdown',
+                value: `**${word}**\n\n🚧 PRO/II LSP v2.0 Alpha - Hover provider under development`
+            }
+        };
+    }
+    
+    return null;
 });
 
 // Completion provider (placeholder)

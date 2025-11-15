@@ -27,6 +27,20 @@
     "lsp",
     "language-server"
   ],
+  "main": "./client/out/extension.js",
+  "activationEvents": [
+    "onLanguage:proii"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "proii",
+        "aliases": ["PRO/II", "proii"],
+        "extensions": [".proii", ".prz"],
+        "configuration": "./language-configuration.json"
+      }
+    ]
+  },
   "scripts": {
     "compile": "cd client && npm run compile && cd ../server && npm run compile",
     "watch": "echo 'Use npm run watch in client/ or server/ directories'",
